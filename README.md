@@ -117,6 +117,20 @@ complete, or current. Always verify with official sources
 ([weather.gov](https://www.weather.gov)) and local authorities, and use your own
 judgment before and during travel.
 
-## License
+## Copyright and license
 
-MIT
+Copyright © 2026 Divya Kshatri. All rights reserved.
+
+This source code is made publicly viewable for reference and portfolio purposes
+only. It is **not** licensed for reuse.
+
+No permission is granted to copy, modify, merge, publish, distribute, sublicense,
+create derivative works from, or sell any part of this software, in whole or in
+part, without prior written permission from the copyright holder.
+
+Viewing the code and referencing its techniques for learning is welcome.
+Republishing it, deploying it as a service, or incorporating it into another
+product is not.
+
+If you'd like to use any part of this project, please open an issue or get in
+touch — I'm open to discussing it.
