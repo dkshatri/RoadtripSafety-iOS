@@ -1,0 +1,30 @@
+RoadtripSafety — complete file manifest (19 Swift files + Info.plist + docs)
+Verify ALL of these are in your Xcode project's Compile Sources after copying.
+
+RoadtripSafety/
+├── RoadtripSafetyApp.swift          (app entry point)
+├── Info.plist                       (do NOT add to target — see SETUP)
+├── Models/
+│   └── Models.swift
+├── Services/
+│   ├── AddressSearchService.swift   (address autocomplete + geocoding)
+│   ├── ISODate.swift                (tolerant date parsing)
+│   ├── LiveTripManager.swift        (live GPS + voice announcements)
+│   ├── NWSService.swift             (weather + alerts, actor-cached)
+│   ├── POIService.swift             (real gas/rest stops via MapKit)
+│   ├── Planner.swift                (nudge engine)
+│   └── RoutingService.swift         (OSRM routing, multi-waypoint)
+└── Views/
+    ├── AddressField.swift           (autocomplete text field)
+    ├── AdvisoryView.swift           (one-time disclaimer)
+    ├── ContentView.swift            (plan screen)
+    ├── LiveTripView.swift           (live map)
+    ├── PlanningLoadingView.swift    (loading overlay)
+    ├── ResultsView.swift            (your trip screen)
+    ├── RouteMapView.swift           (results map)
+    ├── ScreenGradient.swift         (shared background gradient)
+    ├── TripTimelineView.swift       (weather + stops list)
+    └── TripViewModel.swift          (state + orchestration)
+
+TOTAL: 19 .swift files. If any are missing from Compile Sources,
+you'll get "Cannot find <Name> in scope" — add the missing file.
