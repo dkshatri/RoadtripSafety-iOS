@@ -1,5 +1,17 @@
 import SwiftUI
 
+// Formats an ISO-8601 timestamp to a short "h:mm a" time string.
+private func shortTime(_ iso: String) -> String {
+    let iso8601 = ISO8601DateFormatter()
+    iso8601.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let date = iso8601.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+    guard let date else { return iso }
+    let fmt = DateFormatter()
+    fmt.dateStyle = .none
+    fmt.timeStyle = .short
+    return fmt.string(from: date)
+}
+
 // MARK: - Safety banner (shared)
 
 /// The always-visible hazard banner. Escalates green → orange → red, and shows
