@@ -49,9 +49,12 @@ enum POIService {
         guard let item = nearest else { return nil }
 
         let meters = distance(origin, item)
+        let distMiles = meters / 1609.34
+        // Discard POIs that are unreasonably far from the stop (e.g. outside US routes).
+        guard distMiles < 50.0 else { return nil }
         return StopPOI(name: item.name ?? "Unnamed stop",
                        coordinate: item.placemark.coordinate,
-                       distanceMiles: meters / 1609.34,
+                       distanceMiles: distMiles,
                        phone: item.phoneNumber,
                        category: item.pointOfInterestCategory?.friendlyName)
     }
