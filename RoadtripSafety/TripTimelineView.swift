@@ -101,7 +101,7 @@ struct SafetyBanner: View {
     /// Pull a short human detail from the alert headline, if any.
     private func hazardDetail(_ w: Waypoint) -> String {
         if let h = w.alert?.headline, !h.isEmpty { return h }
-        return w.conditions
+        return w.conditions.hasPrefix("NWS") ? "" : w.conditions
     }
 }
 
@@ -120,10 +120,10 @@ struct WeatherList: View {
                         Image(systemName: wp.tier.systemIcon).foregroundStyle(wp.tier.color)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(wp.city ?? String(format: "%.2f, %.2f", wp.coordinate.latitude, wp.coordinate.longitude))
+                        Text(wp.city ?? "En route")
                             .font(.headline)
                         HStack(spacing: 4) {
-                            Text(wp.conditions)
+                            Text(wp.conditions.hasPrefix("NWS") ? "No weather data" : wp.conditions)
                             if let t = wp.temp { Text("· \(t)°") }
                         }
                         .font(.caption).foregroundStyle(.secondary)
