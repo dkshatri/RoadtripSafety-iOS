@@ -37,7 +37,7 @@ extension HazardTier {
 
 // MARK: - Safety banner (shared)
 
-/// The always-visible hazard banner. Escalates green â orange â red, and shows
+/// The always-visible hazard banner. Escalates green → orange → red, and shows
 /// a distinct blue "no coverage" state outside the US. Safety-critical, so it's
 /// never hidden behind a toggle.
 struct SafetyBanner: View {
@@ -48,7 +48,7 @@ struct SafetyBanner: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "globe.americas.fill").foregroundStyle(.blue)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Route planned â live weather unavailable here")
+                    Text("Route planned — live weather unavailable here")
                         .font(.subheadline).bold().foregroundStyle(.primary)
                     Text("Severe-weather warnings currently cover the US only. Your route, fuel, and rest stops are ready, but check local forecasts for this trip.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -61,7 +61,7 @@ struct SafetyBanner: View {
         } else if plan.hasCritical {
             let crit = plan.criticalWaypoints
             HStack(alignment: .top, spacing: 12) {
-                Text("ð").font(.title3)
+                Text("🛑").font(.title3)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Severe weather warning")
                         .font(.headline).foregroundStyle(.white)
@@ -69,7 +69,7 @@ struct SafetyBanner: View {
                         .font(.subheadline).foregroundStyle(.white.opacity(0.95))
                     ForEach(crit) { w in
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("\(w.alert?.event ?? "Warning") â \(w.city ?? "route")")
+                            Text("\(w.alert?.event ?? "Warning") — \(w.city ?? "route")")
                                 .font(.subheadline).bold().foregroundStyle(.white)
                             Text("ETA \(shortTime(w.etaISO)): \(hazardDetail(w))")
                                 .font(.caption).foregroundStyle(.white.opacity(0.9))
@@ -107,7 +107,7 @@ struct SafetyBanner: View {
 
 // MARK: - Weather list (shared)
 
-/// The per-waypoint weather list â conditions at each checkpoint's arrival time.
+/// The per-waypoint weather list — conditions at each checkpoint's arrival time.
 struct WeatherList: View {
     let plan: TripPlan
 
@@ -124,7 +124,7 @@ struct WeatherList: View {
                             .font(.headline)
                         HStack(spacing: 4) {
                             Text(wp.conditions)
-                            if let t = wp.temp { Text("Â· \(t)Â°") }
+                            if let t = wp.temp { Text("· \(t)°") }
                         }
                         .font(.caption).foregroundStyle(.secondary)
                     }
@@ -184,7 +184,7 @@ struct StopCard: View {
                             .font(.caption).bold()
                             .foregroundStyle(stop.nudged ? .purple : .secondary)
                         if stop.nudged {
-                            Text("â NUDGED").font(.caption2).bold()
+                            Text("↝ NUDGED").font(.caption2).bold()
                                 .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(Color.purple.opacity(0.15), in: Capsule())
                                 .foregroundStyle(.purple)
@@ -222,7 +222,7 @@ struct StopCard: View {
             parts.append(String(format: "%.1f mi off route", poi.distanceMiles))
         }
         if let city = stop.city { parts.append(city) }
-        return parts.joined(separator: " Â· ")
+        return parts.joined(separator: " · ")
     }
 }
 
