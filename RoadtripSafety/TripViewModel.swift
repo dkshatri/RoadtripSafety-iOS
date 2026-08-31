@@ -72,7 +72,6 @@ final class TripViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         plan = nil
-        // Whatever happens below, never leave the UI stuck on the loading screen.
         defer { isLoading = false }
 
         let departISO = ISODate.string(from: departureDate)
@@ -81,27 +80,76 @@ final class TripViewModel: ObservableObject {
         opts.breakEveryMin = breakEvery
 
         do {
-            // The backend does routing + weather + the nudge algorithm and
-            // returns a finished plan. POI names are still resolved on-device
-            // afterward (MapKit is device-only).
             let via = customStops.map { $0.coordinate }
             let result = try await APIClient.plan(origin: origin, destination: dest,
                                                   via: via, departISO: departISO,
                                                   options: opts)
 
-            // Guard against a degenerate plan (no usable waypoints).
             guard !result.waypoints.isEmpty else {
                 errorMessage = "We couldn't read the weather along this route. Try again shortly."
                 return
             }
 
-            // Show the plan immediately, then resolve real POIs for each stop.
-            // MKLocalSearch is main-actor work, so it runs here, after the
-            // detached compute. The map/timeline update again when it completes.
+            // ── DEBUG ────────────────────────────────────────────────────────
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print("🗺  TRIP PLAN RECEIVED")
+            print("   Distance : \(String(format: "%.1f", result.distanceMiles)) mi")
+            let hrs = Int(result.durationSec) / 3600
+            let mins = (Int(result.durationSec) % 3600) / 60
+            print("   Duration : \(hrs)h \(mins)m")
+            print("   Avg Speed: \(String(format: "%.1f", result.avgSpeedMph)) mph")
+            print("   Route pts: \(result.routeGeometry.count)")
+
+            print("\n📍 DESTINATION: \(destName)")
+            if let last = result.waypoints.last {
+                let loc = last.city.map { "\($0)\(last.state.map { ", \($0)" } ?? "")" } ?? "unknown"
+                print("   Location : \(loc)")
+                print("   ETA      : \(last.etaISO)")
+                print("   Weather  : \(last.conditions) \(last.temp.map { "\($0)°F" } ?? "")")
+                print("   Hazard   : \(last.tier.rawValue) (score \(last.score))")
+                if let alert = last.alert {
+                    print("   ⚠️  Alert : \(alert.event) — \(alert.severity)")
+                    if let hl = alert.headline { print("             \(hl)") }
+                }
+            }
+
+            print("\n🛑 PLANNED STOPS (\(result.stops.count) total):")
+            for (i, stop) in result.stops.enumerated() {
+                let loc = stop.city.map { "\($0)\(stop.state.map { ", \($0)" } ?? "")" } ?? "open road"
+                let kind = stop.kind == "fuel" ? "⛽ Fuel" : "💤 Rest"
+                print("   \(i + 1). \(kind) @ \(String(format: "%.1f", stop.atMiles))mi — \(loc)")
+                print("      ETA    : \(stop.etaISO)")
+                print("      Weather: \(stop.conditions) | Tier: \(stop.tier)")
+                if stop.nudged { print("      ⚡ Nudged: \(stop.reason)") }
+            }
+
+            print("\n🌦  WAYPOINTS (\(result.waypoints.count) total):")
+            for w in result.waypoints {
+                let loc = w.city.map { "\($0)\(w.state.map { ", \($0)" } ?? "")" } ?? "–"
+                let temp = w.temp.map { "\($0)°F" } ?? "–"
+                let wind = w.windSpeed ?? "–"
+                print("   \(String(format: "%6.1f", w.cumMiles))mi | \(loc) | \(w.conditions) | \(temp) | wind \(wind) | \(w.tier.rawValue)")
+                if let alert = w.alert {
+                    print("          ⚠️  \(alert.event) (\(alert.severity))")
+                }
+            }
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            // ── END DEBUG ────────────────────────────────────────────────────
+
             self.plan = result
             self.isLoading = false
 
             let enrichedStops = await POIService.enrich(stops: result.stops)
+
+            // ── DEBUG: enriched POI names ────────────────────────────────────
+            print("\n📌 ENRICHED STOP POIs:")
+            for (i, stop) in enrichedStops.enumerated() {
+                let loc = stop.city.map { "\($0)\(stop.state.map { ", \($0)" } ?? "")" } ?? "–"
+                print("   \(i + 1). \(stop.kind == .fuel ? "⛽" : "💤") \(loc) @ \(String(format: "%.1f", stop.atMiles))mi")
+            }
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            // ── END DEBUG ────────────────────────────────────────────────────
+
             self.plan = TripPlan(distanceMiles: result.distanceMiles,
                                  durationSec: result.durationSec,
                                  avgSpeedMph: result.avgSpeedMph,
@@ -110,41 +158,9 @@ final class TripViewModel: ObservableObject {
                                  stops: enrichedStops)
             return
         } catch let apiError as APIClient.APIError {
-            // The API's messages are already user-friendly (including the
-            // impossible-route and offline cases).
             errorMessage = apiError.errorDescription
         } catch {
             errorMessage = "Something went wrong planning this trip. Please try again."
         }
     }
-}
-
-// MARK: - Shared UI helpers
-
-extension HazardTier {
-    var color: Color {
-        switch self {
-        case .critical: return .red
-        case .watch: return .orange
-        case .caution: return .yellow
-        case .clear: return .green
-        case .unknown: return .gray
-        }
-    }
-    var systemIcon: String {
-        switch self {
-        case .critical: return "exclamationmark.triangle.fill"
-        case .watch: return "exclamationmark.circle.fill"
-        case .caution: return "cloud.rain.fill"
-        case .clear: return "sun.max.fill"
-        case .unknown: return "questionmark.circle"
-        }
-    }
-}
-
-func shortTime(_ iso: String) -> String {
-    guard let d = ISODate.parse(iso) else { return "" }
-    let f = DateFormatter()
-    f.dateFormat = "h:mm a"
-    return f.string(from: d)
 }
