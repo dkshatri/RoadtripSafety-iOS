@@ -61,6 +61,29 @@ struct StopPOI: Identifiable, Sendable {
     let category: String?         // Apple's category label, when available
 }
 
+/// Vehicle type for this trip.
+enum VehicleType: String, Codable, Sendable {
+    case gasoline
+    case electric
+}
+
+/// EV charger connector type.
+enum ChargerType: String, Codable, Sendable {
+    case ccs
+    case chademo
+    case tesla
+    case j1772
+
+    var label: String {
+        switch self {
+        case .ccs: return "CCS"
+        case .chademo: return "CHAdeMO"
+        case .tesla: return "Tesla"
+        case .j1772: return "J1772"
+        }
+    }
+}
+
 /// A planned fuel or rest stop, possibly nudged off a hazard.
 struct PlannedStop: Identifiable, Sendable {
     let id = UUID()
@@ -75,6 +98,14 @@ struct PlannedStop: Identifiable, Sendable {
     let nudged: Bool
     let reason: String
     let coordinate: CLLocationCoordinate2D   // carried so the map needn't float-match
+
+    // EV charging fields (nil for gasoline trips or rest stops)
+    var chargerNetwork: String? = nil       // e.g. "Electrify America", "ChargePoint"
+    var chargerLevel: String? = nil         // "DCFC" or "L2"
+    var connectorType: String? = nil        // matches the user's preferred connector
+    var estimatedChargeMin: Int? = nil      // approx charge time in minutes
+    var noChargingAvailable: Bool = false   // true when no charger found within 60mi
+    var nearestChargerMiles: Double? = nil  // distance to nearest charger when unavailable
 
     /// The nearest real establishment, filled in by POIService after planning.
     var poi: StopPOI? = nil
@@ -114,4 +145,7 @@ struct PlanOptions: Sendable {
     var fuelRangeMiles: Double = 300
     var breakEveryMin: Double = 150
     var sampleIntervalMiles: Double = 25
+    var vehicleType: VehicleType = .gasoline
+    var chargerType: ChargerType = .ccs
+    var batteryRangeMiles: Double = 280
 }
