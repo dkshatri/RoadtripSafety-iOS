@@ -27,7 +27,7 @@ enum APIClient {
             case .timedOut:
                 return "The trip service took too long to respond. Try again in a moment."
             case .server(_, let message):
-                return message   // already user-friendly
+                return message   // already user-friendly (e.g. the "car that swims" line)
             case .badResponse(let code):
                 return "The trip service returned an unexpected response (\(code))."
             case .decoding:
@@ -49,7 +49,10 @@ enum APIClient {
             departISO: departISO,
             options: .init(fuelRangeMiles: options.fuelRangeMiles,
                            breakEveryMin: options.breakEveryMin,
-                           sampleInterval: options.sampleIntervalMiles)
+                           sampleInterval: options.sampleIntervalMiles,
+                           vehicleType: options.vehicleType.rawValue,
+                           chargerType: options.chargerType.rawValue,
+                           batteryRangeMiles: options.batteryRangeMiles)
         )
 
         var request = URLRequest(url: baseURL.appendingPathComponent("plan"))
@@ -73,6 +76,7 @@ enum APIClient {
             throw APIError.badResponse(-1)
         }
 
+        // Non-2xx: try to decode the structured API error for a good message.
         guard (200...299).contains(http.statusCode) else {
             if let apiErr = try? JSONDecoder().decode(APIErrorBody.self, from: data) {
                 throw APIError.server(code: apiErr.code ?? "ERROR", message: apiErr.error)
@@ -91,7 +95,7 @@ enum APIClient {
     }
 }
 
-// MARK: - Request / response DTOs
+// MARK: - Request / response DTOs (match the server's JSON contract)
 
 private struct PlanRequest: Encodable {
     let origin: [Double]
@@ -103,6 +107,9 @@ private struct PlanRequest: Encodable {
         let fuelRangeMiles: Double
         let breakEveryMin: Double
         let sampleInterval: Double
+        let vehicleType: String
+        let chargerType: String
+        let batteryRangeMiles: Double
     }
 }
 
@@ -153,8 +160,16 @@ private struct PlanResponse: Decodable {
         let reason: String
         let lat: Double?
         let lon: Double?
+        // EV charging fields
+        let chargerNetwork: String?
+        let chargerLevel: String?
+        let connectorType: String?
+        let estimatedChargeMin: Int?
+        let noChargingAvailable: Bool?
+        let nearestChargerMiles: Double?
     }
 
+    // Map the wire format into the app's existing models.
     func toTripPlan() -> TripPlan {
         let geometry = routeGeometry.map {
             CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
@@ -193,7 +208,13 @@ private struct PlanResponse: Decodable {
                 conditions: s.conditions,
                 nudged: s.nudged,
                 reason: s.reason,
-                coordinate: coord
+                coordinate: coord,
+                chargerNetwork: s.chargerNetwork,
+                chargerLevel: s.chargerLevel,
+                connectorType: s.connectorType,
+                estimatedChargeMin: s.estimatedChargeMin,
+                noChargingAvailable: s.noChargingAvailable ?? false,
+                nearestChargerMiles: s.nearestChargerMiles
             )
         }
 
